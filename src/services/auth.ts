@@ -5,6 +5,9 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   User as FirebaseUser,
   onAuthStateChanged
 } from 'firebase/auth';
@@ -39,7 +42,7 @@ export class AuthService {
         email: result.user.email!,
         displayName,
         username: displayName.toLowerCase().replace(/\s+/g, ''),
-        photoURL: null,
+        photoURL: undefined,
         skills: [],
         needs: [],
         visibility: {
@@ -120,8 +123,29 @@ export class AuthService {
     }
   }
 
+  // Change password
+  static async changePassword(currentPassword: string, newPassword: string) {
+    try {
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+        throw new Error('No authenticated user found');
+      }
+
+      // Re-authenticate user with current password
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get current user
   static getCurrentUser(): FirebaseUser | null {
     return auth.currentUser;
   }
 }
+
+export const authService = AuthService;

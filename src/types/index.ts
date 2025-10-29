@@ -19,6 +19,14 @@ export interface User {
     showUniversity: boolean;
     showCity: boolean;
   };
+  notificationSettings?: {
+    pushEnabled: boolean;
+    emailEnabled: boolean;
+    newMessages: boolean;
+    peerRequests: boolean;
+    matchSuggestions: boolean;
+    promotions: boolean;
+  };
   flags: {
     isBanned: boolean;
     isVerified: boolean;

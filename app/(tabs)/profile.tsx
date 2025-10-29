@@ -1,14 +1,18 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
 import { useAuthStore } from '../../src/store/authStore';
+import { storageService } from '../../src/services/storage';
+import { userService } from '../../src/services/userService';
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, updateUserProfile } = useAuthStore();
+  const [isUploading, setIsUploading] = useState(false);
 
   // Calculate profile completion percentage
   const calculateProfileCompleteness = () => {
@@ -31,6 +35,42 @@ export default function ProfileScreen() {
 
   const profileCompleteness = calculateProfileCompleteness();
 
+  const handleAvatarUpload = async () => {
+    if (!user) return;
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant access to your photo library to upload a profile picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      setIsUploading(true);
+      const imageUri = result.assets[0].uri;
+      
+      const downloadURL = await storageService.uploadProfilePicture(user.uid, imageUri);
+      
+      await userService.updateUserProfile(user.uid, { photoURL: downloadURL });
+      updateUserProfile({ photoURL: downloadURL });
+      
+      Alert.alert('Success', 'Profile picture updated successfully!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      Alert.alert('Error', 'Failed to upload profile picture. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-secondary-50">
       <ScrollView className="flex-1 px-4 py-6">
@@ -38,12 +78,26 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <Card variant="elevated" className="mb-6 items-center">
           <TouchableOpacity 
-            className="w-24 h-24 bg-primary-100 rounded-full items-center justify-center mb-4"
-            onPress={() => {/* TODO: Avatar upload */}}
+            className="w-24 h-24 bg-primary-100 rounded-full items-center justify-center mb-4 overflow-hidden"
+            onPress={handleAvatarUpload}
+            disabled={isUploading}
           >
-            <Text className="text-primary-600 font-bold text-3xl">
-              {user?.displayName?.charAt(0) || 'U'}
-            </Text>
+            {user?.photoURL ? (
+              <Image 
+                source={{ uri: user.photoURL }} 
+                className="w-full h-full"
+                style={{ opacity: isUploading ? 0.5 : 1 }}
+              />
+            ) : (
+              <Text className="text-primary-600 font-bold text-3xl">
+                {user?.displayName?.charAt(0) || 'U'}
+              </Text>
+            )}
+            {isUploading && (
+              <View className="absolute inset-0 bg-black/20 items-center justify-center">
+                <Text className="text-white text-xs">Uploading...</Text>
+              </View>
+            )}
           </TouchableOpacity>
           
           <Text className="text-2xl font-bold text-secondary-900 mb-1">
@@ -193,19 +247,19 @@ export default function ProfileScreen() {
             <Button
               title="Privacy Settings"
               variant="ghost"
-              onPress={() => {/* TODO: Privacy settings */}}
+              onPress={() => router.push('/profile/privacy-settings')}
             />
             
             <Button
               title="Notification Settings"
               variant="ghost"
-              onPress={() => {/* TODO: Notification settings */}}
+              onPress={() => router.push('/profile/notification-settings')}
             />
             
             <Button
               title="Change Password"
               variant="ghost"
-              onPress={() => {/* TODO: Change password */}}
+              onPress={() => router.push('/profile/change-password')}
             />
           </View>
         </Card>
