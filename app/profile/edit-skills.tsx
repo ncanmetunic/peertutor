@@ -11,14 +11,12 @@ import { SKILLS_DATABASE, searchSkills } from '../../src/data/skillsDatabase';
 import { DatabaseService } from '../../src/services/db';
 import { MatchingService } from '../../src/services/matching';
 
-export default function OnboardingSkillsScreen() {
-  const { user } = useAuthStore();
+export default function EditSkillsScreen() {
+  const { user, setUser } = useAuthStore();
   
-  // Skills the user can teach
-  const [teachingSkills, setTeachingSkills] = useState<string[]>([]);
-  
-  // Skills the user wants to learn
-  const [learningNeeds, setLearningNeeds] = useState<string[]>([]);
+  // Initialize with current user skills and needs
+  const [teachingSkills, setTeachingSkills] = useState<string[]>(user?.skills || []);
+  const [learningNeeds, setLearningNeeds] = useState<string[]>(user?.needs || []);
   
   // Selected category for browsing
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -96,7 +94,7 @@ export default function OnboardingSkillsScreen() {
     return true;
   };
 
-  const handleFinish = async () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
     if (!user?.uid) return;
 
@@ -110,23 +108,15 @@ export default function OnboardingSkillsScreen() {
       });
 
       // Update local user state
-      const { setUser } = useAuthStore.getState();
       setUser({
         ...user,
         skills: teachingSkills,
         needs: learningNeeds
       });
       
-      Alert.alert(
-        'Profile Complete! 🎉',
-        'Welcome to PeerTutor! You can now start connecting with study partners.',
-        [
-          {
-            text: 'Start Exploring',
-            onPress: () => router.replace('/(tabs)')
-          }
-        ]
-      );
+      Alert.alert('Success', 'Skills and learning goals updated successfully!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to save your skills. Please try again.');
       console.error('Skills save error:', error);
@@ -135,7 +125,7 @@ export default function OnboardingSkillsScreen() {
     }
   };
 
-  const handleBack = () => {
+  const handleCancel = () => {
     router.back();
   };
 
@@ -147,26 +137,13 @@ export default function OnboardingSkillsScreen() {
       >
         <ScrollView className="flex-1 px-6 py-6">
           
-          {/* Progress Header */}
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-primary-600 font-medium">Step 2 of 3</Text>
-              <Text className="text-secondary-500 text-sm">Skills & Learning</Text>
-            </View>
-            
-            {/* Progress Bar */}
-            <View className="w-full bg-secondary-200 rounded-full h-2">
-              <View className="bg-primary-600 h-2 rounded-full" style={{ width: '66%' }} />
-            </View>
-          </View>
-
           {/* Header */}
           <View className="mb-8">
             <Text className="text-2xl font-bold text-secondary-900 mb-2">
-              Share your expertise 🎯
+              Edit Skills & Learning Goals
             </Text>
             <Text className="text-secondary-600">
-              Select skills you can teach and subjects you want to learn. This helps us find the perfect study partners for you.
+              Update the skills you can teach and subjects you want to learn to find better study partners.
             </Text>
           </View>
 
@@ -293,21 +270,21 @@ export default function OnboardingSkillsScreen() {
             </Card>
           )}
 
-          {/* Navigation Buttons */}
+          {/* Action Buttons */}
           <View className="flex-row space-x-4 mb-8">
             <Button
-              title="Back"
+              title="Cancel"
               variant="outline"
               size="lg"
-              onPress={handleBack}
+              onPress={handleCancel}
               style={{ flex: 1 }}
             />
             <Button
-              title="Complete Setup"
+              title="Save Changes"
               variant="primary"
               size="lg"
-              onPress={handleFinish}
-              style={{ flex: 2 }}
+              onPress={handleSave}
+              style={{ flex: 1 }}
               disabled={teachingSkills.length === 0 || learningNeeds.length === 0}
               loading={isLoading}
             />
@@ -316,7 +293,7 @@ export default function OnboardingSkillsScreen() {
           {/* Help Text */}
           <View className="items-center">
             <Text className="text-secondary-500 text-sm text-center">
-              You need at least 1 skill to teach and 1 skill to learn. You can add more skills later in your profile.
+              You need at least 1 skill to teach and 1 skill to learn.
             </Text>
           </View>
 

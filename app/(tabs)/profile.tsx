@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
 import { Chip } from '../../src/components/ui/Chip';
@@ -9,11 +10,26 @@ import { useAuthStore } from '../../src/store/authStore';
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
 
-  // Mock profile completion percentage
-  const profileCompleteness = 75;
+  // Calculate profile completion percentage
+  const calculateProfileCompleteness = () => {
+    if (!user) return 0;
+    
+    let completed = 0;
+    const totalFields = 8;
+    
+    if (user.displayName) completed++;
+    if (user.university) completed++;
+    if (user.department) completed++;
+    if (user.city) completed++;
+    if (user.bio && user.bio.length > 10) completed++;
+    if (user.experience) completed++;
+    if (user.skills && user.skills.length > 0) completed++;
+    if (user.needs && user.needs.length > 0) completed++;
+    
+    return Math.round((completed / totalFields) * 100);
+  };
 
-  const mockSkills = ['React Native', 'JavaScript', 'Node.js', 'MongoDB'];
-  const mockNeeds = ['Machine Learning', 'Python', 'Data Science'];
+  const profileCompleteness = calculateProfileCompleteness();
 
   return (
     <SafeAreaView className="flex-1 bg-secondary-50">
@@ -21,19 +37,28 @@ export default function ProfileScreen() {
         
         {/* Profile Header */}
         <Card variant="elevated" className="mb-6 items-center">
-          <View className="w-24 h-24 bg-primary-100 rounded-full items-center justify-center mb-4">
+          <TouchableOpacity 
+            className="w-24 h-24 bg-primary-100 rounded-full items-center justify-center mb-4"
+            onPress={() => {/* TODO: Avatar upload */}}
+          >
             <Text className="text-primary-600 font-bold text-3xl">
               {user?.displayName?.charAt(0) || 'U'}
             </Text>
-          </View>
+          </TouchableOpacity>
           
           <Text className="text-2xl font-bold text-secondary-900 mb-1">
             {user?.displayName || 'User Name'}
           </Text>
           
-          <Text className="text-secondary-600 text-center mb-4">
+          <Text className="text-secondary-600 text-center mb-2">
             {user?.email}
           </Text>
+          
+          {user?.age && (
+            <Text className="text-secondary-500 text-center mb-4">
+              Age: {user.age}
+            </Text>
+          )}
 
           {/* Profile Completion */}
           <View className="w-full">
@@ -83,7 +108,7 @@ export default function ProfileScreen() {
             title="Edit Academic Info"
             variant="outline"
             size="sm"
-            onPress={() => {/* TODO: Edit profile */}}
+            onPress={() => router.push('/profile/edit-academic')}
             style={{ marginTop: 16 }}
           />
         </Card>
@@ -94,9 +119,9 @@ export default function ProfileScreen() {
             What I Can Teach
           </Text>
           
-          {mockSkills.length > 0 ? (
+          {user?.skills && user.skills.length > 0 ? (
             <View className="flex-row flex-wrap gap-2 mb-4">
-              {mockSkills.map((skill, index) => (
+              {user.skills.map((skill, index) => (
                 <Chip key={index} label={skill} variant="skill" />
               ))}
             </View>
@@ -110,7 +135,7 @@ export default function ProfileScreen() {
             title="Manage Skills"
             variant="outline"
             size="sm"
-            onPress={() => {/* TODO: Edit skills */}}
+            onPress={() => router.push('/profile/edit-skills')}
           />
         </Card>
 
@@ -120,9 +145,9 @@ export default function ProfileScreen() {
             What I Want to Learn
           </Text>
           
-          {mockNeeds.length > 0 ? (
+          {user?.needs && user.needs.length > 0 ? (
             <View className="flex-row flex-wrap gap-2 mb-4">
-              {mockNeeds.map((need, index) => (
+              {user.needs.map((need, index) => (
                 <Chip key={index} label={need} variant="need" />
               ))}
             </View>
@@ -136,7 +161,7 @@ export default function ProfileScreen() {
             title="Manage Learning Goals"
             variant="outline"
             size="sm"
-            onPress={() => {/* TODO: Edit needs */}}
+            onPress={() => router.push('/profile/edit-skills')}
           />
         </Card>
 
@@ -154,7 +179,7 @@ export default function ProfileScreen() {
             title="Edit Bio"
             variant="outline"
             size="sm"
-            onPress={() => {/* TODO: Edit bio */}}
+            onPress={() => router.push('/profile/edit-bio')}
           />
         </Card>
 

@@ -4,14 +4,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Firebase configuration
+// Firebase configuration - uses environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyBvOkBwGyRLsn5pHAHHOLXr5ZnYsTADGVU",
-  authDomain: "peertutor-dev.firebaseapp.com",
-  projectId: "peertutor-dev",
-  storageBucket: "peertutor-dev.appspot.com",
-  messagingSenderId: "567890123456",
-  appId: "1:567890123456:web:abcdef1234567890abcdef"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyBvOkBwGyRLsn5pHAHHOLXr5ZnYsTADGVU",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "peertutor-dev.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "peertutor-dev",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "peertutor-dev.appspot.com",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "567890123456",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:567890123456:web:abcdef1234567890abcdef"
 };
 
 // Initialize Firebase

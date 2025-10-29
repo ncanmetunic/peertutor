@@ -9,45 +9,7 @@ import { useAuthStore } from '../../src/store/authStore';
 import { DatabaseService } from '../../src/services/db';
 import { Match, User } from '../../src/types';
 
-// Mock data for conversations
-const mockConversations = [
-  {
-    id: '1',
-    participant: {
-      name: 'Ahmet Yılmaz',
-      university: 'METU',
-      avatar: null
-    },
-    lastMessage: 'Thanks for explaining React hooks! Really helpful 🙏',
-    lastMessageTime: '2 min ago',
-    unreadCount: 2,
-    isOnline: true
-  },
-  {
-    id: '2',
-    participant: {
-      name: 'Elif Kaya',
-      university: 'METU', 
-      avatar: null
-    },
-    lastMessage: 'When should we meet for the statistics study session?',
-    lastMessageTime: '1 hour ago',
-    unreadCount: 0,
-    isOnline: false
-  },
-  {
-    id: '3',
-    participant: {
-      name: 'Can Özkan',
-      university: 'METU',
-      avatar: null
-    },
-    lastMessage: 'The machine learning resources you shared were perfect!',
-    lastMessageTime: '1 day ago',
-    unreadCount: 0,
-    isOnline: true
-  }
-];
+// Real conversation interface that extends Match with additional data
 
 interface ConversationItem extends Match {
   participant: User;
@@ -111,8 +73,12 @@ export default function ChatScreen() {
     return `${days}d ago`;
   };
 
+  const handleNavigateToConversation = (conversation: ConversationItem) => {
+    router.push(`/chat/${conversation.id}`);
+  };
+
   const renderConversation = ({ item }: { item: ConversationItem }) => (
-    <TouchableOpacity onPress={() => {/* TODO: Navigate to conversation */}}>
+    <TouchableOpacity onPress={() => handleNavigateToConversation(item)}>
       <Card variant="outlined" className="mb-3">
         <View className="flex-row items-center">
           

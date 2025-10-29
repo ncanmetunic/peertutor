@@ -1,0 +1,71 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is signed in
+    function signedIn() { 
+      return request.auth != null; 
+    }
+    
+    // Helper function to check if user is the owner
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    
+    // Helper function to check file size (max 10MB for images, 50MB for documents)
+    function isValidImageSize() {
+      return resource.size < 10 * 1024 * 1024;
+    }
+    
+    function isValidDocumentSize() {
+      return resource.size < 50 * 1024 * 1024;
+    }
+    
+    // Helper function to check if file is an image
+    function isImage() {
+      return resource.contentType.matches('image/.*');
+    }
+    
+    // Helper function to check if file is a document
+    function isDocument() {
+      return resource.contentType.matches('application/pdf') ||
+             resource.contentType.matches('application/msword') ||
+             resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+             resource.contentType.matches('text/plain');
+    }
+
+    // User profile images
+    match /users/{uid}/profile/{filename} {
+      // Users can read any profile image (for public profiles)
+      allow read: if signedIn();
+      
+      // Users can write their own profile images
+      allow write: if isOwner(uid) && isImage() && isValidImageSize();
+    }
+
+    // Chat message attachments
+    match /conversations/{conversationId}/attachments/{filename} {
+      // Users can read attachments in conversations they're part of
+      allow read: if signedIn() && 
+        request.auth.uid in firestore.get(/databases/(default)/documents/matches/$(conversationId)).data.uids;
+      
+      // Users can upload attachments to conversations they're part of
+      allow write: if signedIn() && 
+        request.auth.uid in firestore.get(/databases/(default)/documents/matches/$(conversationId)).data.uids &&
+        ((isImage() && isValidImageSize()) || (isDocument() && isValidDocumentSize()));
+    }
+
+    // Temporary uploads (for processing)
+    match /temp/{uid}/{filename} {
+      // Users can manage their own temporary files
+      allow read, write: if isOwner(uid) && isValidImageSize();
+      
+      // Auto-delete after 24 hours (handled by Cloud Function)
+    }
+
+    // Deny all other requests
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

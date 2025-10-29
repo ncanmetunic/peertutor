@@ -29,7 +29,7 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  const { initialize, isAuthenticated, isLoading } = useAuthStore();
+  const { initialize, isAuthenticated, isLoading, user } = useAuthStore();
 
   // Initialize auth state listener
   useEffect(() => {
@@ -48,14 +48,23 @@ export default function RootLayout() {
     }
   }, [loaded, isLoading]);
 
-  // Handle authentication routing
+  // Handle authentication and onboarding routing
   useEffect(() => {
     if (loaded && !isLoading) {
       if (!isAuthenticated) {
         router.replace('/auth/login');
+      } else if (user) {
+        // Check if user needs to complete onboarding
+        const needsOnboarding = !user.university || !user.department || !user.city || 
+                              !user.skills || user.skills.length === 0 || 
+                              !user.needs || user.needs.length === 0;
+        
+        if (needsOnboarding) {
+          router.replace('/onboarding');
+        }
       }
     }
-  }, [loaded, isLoading, isAuthenticated]);
+  }, [loaded, isLoading, isAuthenticated, user]);
 
   if (!loaded || isLoading) {
     return null;
@@ -75,6 +84,11 @@ function RootLayoutNav() {
         <Stack.Screen name="auth/register" options={{ headerShown: false }} />
         <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="profile/edit-academic" options={{ headerShown: false }} />
+        <Stack.Screen name="profile/edit-skills" options={{ headerShown: false }} />
+        <Stack.Screen name="profile/edit-bio" options={{ headerShown: false }} />
+        <Stack.Screen name="requests/send" options={{ headerShown: false }} />
+        <Stack.Screen name="chat/[conversationId]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

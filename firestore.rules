@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is signed in
+    function signedIn() { 
+      return request.auth != null; 
+    }
+    
+    // Helper function to check if user is the owner
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    
+    // Helper function to check if user is verified
+    function isVerified() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.flags.isVerified == true;
+    }
+    
+    // Helper function to check if user is not banned
+    function isNotBanned() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.flags.isBanned == false;
+    }
+
+    // Users collection
+    match /users/{uid} {
+      // Allow users to read any public profile, write only their own
+      allow read: if signedIn();
+      allow write: if isOwner(uid) && isNotBanned();
+      
+      // Prevent users from modifying their verification status or ban status
+      allow update: if isOwner(uid) && isNotBanned() && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['flags']));
+    }
+
+    // Skills collection (read-only for users)
+    match /skills/{doc} {
+      allow read: if signedIn();
+      allow write: if false; // Only admins can edit via admin interface
+    }
+
+    // Peer requests
+    match /requests/{requestId} {
+      // Users can create requests from themselves
+      allow create: if signedIn() && isNotBanned() && 
+        request.resource.data.fromUid == request.auth.uid;
+      
+      // Users can read and update requests they're involved in
+      allow read, update: if signedIn() && (
+        resource.data.fromUid == request.auth.uid || 
+        resource.data.toUid == request.auth.uid
+      );
+      
+      // Only the recipient can change the status
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid;
+    }
+
+    // Matches
+    match /matches/{matchId} {
+      // Users can read and write matches they're part of
+      allow read, write: if signedIn() && 
+        request.auth.uid in resource.data.uids;
+    }
+
+    // Match suggestions (cached by Cloud Function)
+    match /matchSuggestions/{uid}/items/{suggestionId} {
+      // Users can only read their own match suggestions
+      allow read: if isOwner(uid);
+      allow write: if false; // Only Cloud Functions can write suggestions
+    }
+
+    // Conversations
+    match /conversations/{conversationId} {
+      // Users can read/write conversations they're part of
+      allow read, write: if signedIn() && 
+        request.auth.uid in get(/databases/$(database)/documents/matches/$(conversationId)).data.uids;
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Users can read/write messages in conversations they're part of
+        allow read, write: if signedIn() && 
+          request.auth.uid in get(/databases/$(database)/documents/matches/$(conversationId)).data.uids;
+        
+        // Users can only create messages with their own UID as sender
+        allow create: if signedIn() && 
+          request.resource.data.senderUid == request.auth.uid;
+        
+        // Users can update their own messages (for deletion marking)
+        allow update: if signedIn() && 
+          resource.data.senderUid == request.auth.uid;
+      }
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      // Users can create reports about others
+      allow create: if signedIn() && isNotBanned() && 
+        request.resource.data.reporterUid == request.auth.uid;
+      
+      // Users can read their own reports
+      allow read: if signedIn() && resource.data.reporterUid == request.auth.uid;
+      
+      // Only admins can update reports (handled elsewhere)
+      allow update: if false;
+    }
+
+    // User blocks
+    match /blocks/{uid}/list/{targetUid} {
+      // Users can read and write their own block list
+      allow read, write: if isOwner(uid);
+      
+      // Ensure the targetUid matches the document ID
+      allow create: if isOwner(uid) && 
+        request.resource.data.targetUid == targetUid;
+    }
+
+    // Admin-only collections (if needed later)
+    match /admin/{document=**} {
+      allow read, write: if false; // Will be handled by admin-specific rules later
+    }
+  }
+}
